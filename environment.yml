@@ -5,7 +5,7 @@ channels:
 dependencies:
   - bzip2=1.0.8
   - ca-certificates=2025.2.25
-  - geographiclib=2.0=
+  - geographiclib=2.0
   - geopy=2.4.1
   - joblib=1.4.2
   - libffi=3.4.4
