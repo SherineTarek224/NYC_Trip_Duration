@@ -3,17 +3,19 @@ import numpy as np
 from geopy import distance
 import math
 
-def load_data():
-    train = pd.read_csv(r"Dataset\Sample_Data\train_sample.csv")
-    val = pd.read_csv(r"Dataset\Sample_Data\val_sample.csv")
 
-    #val=pd.read_csv(r"Dataset\Data\train.csv")
-    #train=pd.read_csv(r"Dataset\Data\val.csv")
+def load_data(training=True):
 
-    df = pd.concat([val, train])
-    #df = df.sample(frac=0.7)
-
-    return df
+    if training:
+        train = pd.read_csv(r"Dataset/Data/train.csv")
+        # may need to extract train.zip, val.zip files
+        return train
+    # for sample data
+    # val=pd.read_csv("val_sample.csv")
+    # train=pd.concat([val,train])
+    else:
+        val = pd.read_csv(r"Dataset/Data/val.csv")
+        return val
 
 
 def hour_period(hour):
@@ -59,6 +61,7 @@ def direction(row):
 
 
 def prepare(df):
+
     df["pickup_datetime"] = pd.to_datetime(df["pickup_datetime"])
 
     df["day"] = df["pickup_datetime"].dt.day
@@ -70,32 +73,24 @@ def prepare(df):
     df["quarter"] = df["pickup_datetime"].dt.quarter
 
     df["haversine_distance"] = df.apply(haversine_dist, axis=1)
-    df["log_haversine_distance"] = np.log1p(df["haversine_distance"])
 
     df["manhattan_distance"] = df.apply(manhattan_dis, axis=1)
-    df["log_manhattan_distance"] = np.log1p(df["manhattan_distance"])
 
     df["direction"] = df.apply(direction, axis=1)
-    df["log_direction"] = np.log1p(df["direction"])
 
     df["log_trip_duration"] = np.log1p(df["trip_duration"])  # ln(x+1)
 
-    # df["log_pickup_longitude"]=np.log1p(df["pickup_longitude"])
-    # df["log_pickup_latitude"]=np.log1p(df["pickup_latitude"])
-    # df["log_dropoff_longitude"]=np.log1p(df["dropoff_longitude"])
-    # df["log_dropoff_latitude"]=np.log1p(df["dropoff_latitude"])
-
-
+    df.drop(columns=['id', 'pickup_datetime'], inplace=True)
 
     return df
 
-
 if __name__=="__main__":
-    df=load_data()
-    df=prepare(df)
-    print(df.iloc[1]) ##first 1 row
-    print("///////////////////////")
-    print("Data_Shape",df.shape)
+    train=load_data(training=True)
+    val=load_data(training=False)
+    df_train=prepare(train)
+    print(f"Training Shape {df_train.shape}")
+    df_val=prepare(val)
+    print(f"Val shape {df_val.shape}")
 
 
 

@@ -1,78 +1,51 @@
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, OneHotEncoder, PolynomialFeatures
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, OneHotEncoder, PolynomialFeatures, \
+    FunctionTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split
+import numpy as np
 from prepare import *
 
 target = ["log_trip_duration"]
 numerical_feature = [
-    "pickup_longitude", "pickup_latitude",
-    "log_haversine_distance", "log_manhattan_distance",
-    "log_direction", "dropoff_longitude", "dropoff_latitude"]
 
-categorical_feature = ["vendor_id", "day", "day_of_year", "day_of_week", "hour", "month", "quarter", "passenger_count",
-                       "store_and_fwd_flag", "period"]
+    "haversine_distance", "manhattan_distance",
+    "direction", "dropoff_longitude", "dropoff_latitude"]
+
+categorical_feature = ["vendor_id", "day", "day_of_year", "day_of_week"
+    , "hour", "month", "quarter", "passenger_count", "store_and_fwd_flag", "period"]
+
+
 train_features = numerical_feature + categorical_feature
-cols_with_outliers = ["log_haversine_distance"
-    , "log_manhattan_distance", "log_direction", "pickup_longitude", "pickup_latitude"
-    , "dropoff_longitude", "dropoff_latitude"]
 
+cols_with_outliers = ["pickup_longitude", "pickup_latitude", "dropoff_longitude", "dropoff_latitude"]
 r_s = 42
 np.random.seed(r_s)
 
 
-def split_data(df):
-    y = df[target].astype('float32')
-    x = df[train_features]  # keep dataframe
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=r_s)
-
-    return x_train, x_test, y_train, y_test  # x_test,x_train,y_train,y_test are dataframe
-
-
-def remove_outliers(x_train, y_train, x_test, y_test, clip=False, threshold=3, option=1):
-    bounds = {}
-    if option == 1:
-        for col in cols_with_outliers:
-            q1 = df[col].quantile(0.25)
-            q3 = df[col].quantile(0.75)
+def remove_outlier(df_train, cols_with_outliers, option=1, threshold=3, clip=False):
+    upper = None
+    lower = None
+    for col in cols_with_outliers:
+        if option == 1:
+            q1 = df_train[col].quantile(0.25)
+            q3 = df_train[col].quantile(0.75)
             iqr = q3 - q1
-            lower = q1 - 1.5 * iqr
             upper = q3 + 1.5 * iqr
-            bounds[col] = (lower, upper)
+            lower = q1 - 1.5 * iqr
+        elif option == 2:
+            mean = df_train[col].mean()
+            std = df_train[col].std()
+            upper = mean + std * threshold
+            lower = mean - std * threshold
+        else:
+            raise ValueError("Option must be 1 (IQR) or 2 (Z-score)")
+        if clip:
+            df_train[col] = df_train[col].clip(lower, upper)
+        else:
+            df_train = df_train[(df_train[col] >= lower) & (df_train[col] <= upper)]
 
-    elif option == 2:
+    return df_train
 
-        means = x_train[cols_with_outliers].mean()
-        stds = x_train[cols_with_outliers].std()
-        for col in cols_with_outliers:
-            lower = means[col] - threshold * stds[col]
-            upper = means[col] + threshold * stds[col]
-            bounds[col] = (lower, upper)
-
-    if clip:
-        # Clip outliers in-place using bounds
-        x_train_clipped = x_train.copy()
-        x_test_clipped = x_test.copy()
-        for col in cols_with_outliers:
-            lower, upper = bounds[col]
-            x_train_clipped[col] = x_train[col].clip(lower, upper)
-            x_test_clipped[col] = x_test[col].clip(lower, upper)
-        return x_train_clipped, y_train, x_test_clipped, y_test
-    else:
-        # Filter outlier rows
-        mask_train = pd.concat(
-            [x_train[col].between(*bounds[col]) for col in cols_with_outliers],
-            axis=1
-        ).all(axis=1)
-        mask_test = pd.concat(
-            [x_test[col].between(*bounds[col]) for col in cols_with_outliers],
-            axis=1
-        ).all(axis=1)
-
-        return (
-            x_train[mask_train], y_train[mask_train],
-            x_test[mask_test], y_test[mask_test]
-        )
 
 
 def choose_scaling_method(preprocessing_option):
@@ -88,12 +61,23 @@ def choose_scaling_method(preprocessing_option):
         raise ValueError("Invalid preprocessing option:choose 1,2,3 or 4")
 
 
+def log_function(x):
+    return np.log1p(np.maximum(x, 0))
+
+
+def new_feature_name(_, names: list[str]):
+    return [name + '_log' for name in names]
+
+
 def preprocessing_function(preprocessing_option, degree):
     scaler = choose_scaling_method(preprocessing_option)
+    log_features = FunctionTransformer(log_function, feature_names_out=new_feature_name)
 
     numerical_transformer = Pipeline(steps=[
-        ("poly", PolynomialFeatures(degree, include_bias=True, interaction_only=False)),
-        ("scaler", scaler),
+
+        ('scaler',scaler),
+        ('poly', PolynomialFeatures(degree=degree, include_bias=True, interaction_only=False)),
+        ('log', log_features)
 
     ])
     categorical_transformer = Pipeline(steps=[
@@ -115,41 +99,24 @@ def preprocessing_function(preprocessing_option, degree):
     return preprocessing_pipeline
 
 
-def preprocessing_data(train, test, degree, preprocessing_option=1):
+def preprocessing_data(train_features, val_features, degree, preprocessing_option=2):
     preprocessing_pipeline = preprocessing_function(preprocessing_option, degree)
     # prevent Data Leakage
-    train_preprocessed = preprocessing_pipeline.fit_transform(train)
-    test_preprocessed = preprocessing_pipeline.transform(test)
+    train_preprocessed = preprocessing_pipeline.fit_transform(train_features)
+    val_preprocessed = preprocessing_pipeline.transform(val_features)
 
     # train_features_after_preprocessing=preprocessing_pipeline.named_steps["preprocessing"].get_feature_names_out(train_features)
 
     print(f"Shape of preprocessed training data of {degree} = {train_preprocessed.shape}")
-    print(f"Shape of preprocessed test data of {degree} = {test_preprocessed.shape}")
+    print(f"Shape of preprocessed test data of {degree} = {val_preprocessed.shape}")
     # print("Number of feature names:", len(train_features_after_preprocessing))
 
-    return train_preprocessed, test_preprocessed
+    return train_preprocessed, val_preprocessed
 
 
 if __name__=="__main__":
-
-        df = load_data()
-
-        df = prepare(df)
-
-
-        x_train, x_test, y_train, y_test = split_data(df)
-
-        print(f"Training_Shape {x_train.shape}")
-        print(f"Training_Target-Shape {y_train.shape}")
-        print(f"Test_Shape {x_test.shape}")
-        print(f"Test_Target_Shape {y_test.shape}")
-
-        x_train, y_train, x_test, y_test = remove_outliers(x_train, y_train, x_test, y_test, clip=False, threshold=3,
-                                                           option=2)
-
-        X_train_prepr, X_test_prepr = preprocessing_data(x_train, x_test, degree=1, preprocessing_option=2)
-        print(f"X_train after preprocessing {X_train_prepr.shape}")
-        print(f"X_test after preprocessing {X_test_prepr.shape}")
-
-
-
+    train=load_data(training=True)
+    val=load_data(training=False)
+    df_train=prepare(train)
+    df_val=prepare(val)
+    preprocessing_data(df_train[train_features], df_val[train_features], degree=1, preprocessing_option=2)

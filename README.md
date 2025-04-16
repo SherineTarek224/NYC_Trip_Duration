@@ -39,42 +39,46 @@
           ├──train.zip
           ├── val.zip
 
-- README.md:Contains information about this project and important details
-- environment.yml:contain configuration of conda environment and library names and its version 
-- EDA:Data analysis using jupyter notebook to explore features of dataset
-- prepare.py:python file to prepare my data before preprocessing 
-- preprocessing.py:python script to preprocess data choose different preprocessor and check outliers.Create preprocessing pipeline
-- model.py:training the model (main)
-- sample_data_model.pkl:Save model which trained and validation on sample dataset in pkl format
-- model.pkl:Save model which trained on the whole dataset in pkl format 
-- Dataset/sample_data:Dictionary which contain sample data and whole data
-- - train_sample.csv:csv file contain training data 
-- - val_sample.csv:csv file contain validation data 
-- - test_sample.csv:csv file contain test data 
-- Dataset/Data:
-- - train.zip:contain the whole training dataset in zip format 
-- - val.zip:contain the whole validation dataset in zip format
+- **README.md**:Contains information about this project and important details
+- **environment.yml**:contain configuration of conda environment and library names and its version 
+- **EDA**:Data analysis using jupyter notebook to explore features of dataset
+- **prepare.py**:python file to prepare my data before preprocessing 
+- **preprocessing.py**:python script to preprocess data choose different preprocessor and check outliers.Create preprocessing pipeline
+- **model.py**:training the model (main)
+- **sample_data_model.pkl**:Save model which trained and validation on sample dataset in pkl format
+- **model.pkl**:Save model which trained on the whole dataset in pkl format 
+- **Dataset/sample_data**:Dictionary which contain sample data and whole data
+   - train_sample.csv:csv file contain training data 
+   - val_sample.csv:csv file contain validation data 
+   - test_sample.csv:csv file contain test data 
+- **Dataset/Data**:
+   - train.zip:contain the whole training dataset in zip format 
+   - val.zip:contain the whole validation dataset in zip format
 
 # Notes:
 ## Data Pipeline:
  - Splitting Data into numerical and categorical Features
- - Log Target Feature 
- - One hot encoding for categorical Features
- - Remove outliers using Z_Score and clipping method
  - Standard scaling for numerical features 
  - Polynomial Features (degree=6)
+ - Log Target Feature 
+ - One hot encoding for categorical Features
+## Pipeline Structure:
+
+   ![Pipeline_Structure](./Images/Pipeline.png)
+
+ 
 ## Results:
 ### using Sample_Data
 
-- Training RMSE polynomial_regression of degree 6 = 0.4787394095242249
-- Training R2 polynomial_regression of degree 6 = 0.651067770855001
-- Test RMSE polynomial_regression of degree 6 = 0.42408821507202693
-- Test R2 polynomial_regression of degree 6 = 0.6986569865892237
+- Training RMSE polynomial_regression of degree 6 = 0.435
+- Training R2 polynomial_regression of degree 6 = 0.704
+- Val RMSE polynomial_regression of degree 6 = 0.440
+- Val R2 polynomial_regression of degree 6 = 0.72
 ### Using The whole Dataset
-- Training RMSE polynomial_regression of degree 6 = 0.4535068868988568
-- Training R2 polynomial_regression of degree 6 = 0.6750473324898938
-- Test RMSE polynomial_regression of degree 6 = 0.4532444274284575
-- Test R2 polynomial_regression of degree 6 = 0.6770645639917381
+- Training RMSE polynomial_regression of degree 6 = 0.4350
+- Training R2 polynomial_regression of degree 6 = 0.7003
+- Test RMSE polynomial_regression of degree 6 = 0.440
+- Test R2 polynomial_regression of degree 6 = 0.6969
 
    
 
