@@ -64,7 +64,7 @@
  - One hot encoding for categorical Features
 ## Pipeline Structure:
 
-   ![Pipeline_Structure](./Images/Pipeline.png)
+   ![Pipeline_Structure](./Images/Pipeline.PNG)
 
  
 ## Results:
